@@ -224,7 +224,127 @@ Vue将他们统一成了`v-model`，所以你应该声明`data`时为其赋一�
 因为我们在项目中用了element-ui，表单组件几乎都用了它们进一步封装的组件。所以具体的标签和功能在之后的章节介绍它的时候再展开讲，这里只要有基本的html知识+`v-model`就够了。
 
 ## `<script>`标签
-`<script>`标签中是这个组件的js代码。
+`<script>`标签中是这个组件的js代码。我们目前写的都是单文件组件（以后会具体介绍这个名词），所以整个标签主要由一个`export default {...}`构成，用于将这个组件暴露出去。接下来我们将依次介绍这个对象中的内容。
+
+### 其他
+#### name
+这个组件的名字。命名规范是kebab-case(短横线分隔命名)或PascalCase(首字母大写命名)，当你使用后者时，引用这个自定义元素时两种命名法都可以使用。
+
+例如，name是`my-component-name`，你只能以`<my-component-name>`来引用；而name是`MyComponentName`时，`<my-component-name>`和`<MyComponentName>`都是可接受的。
+
+#### components
+一般就是一个`List`，用于列出所有可用的组件。也可以是一个`Object`，key是别名，value是组件。
+
+### 数据
+#### data
+这个组件内部所有的变量。需要注意的是，`data`必须是一个函数，这样每个实例才可以维护一份被返回对象的独立的拷贝。否则当你在一个组件A内复用了多个组件B时，这多个组件B会共享同一个`data`。
+
+在里面声明的变量var，既可以在其他的函数中以`this.$data.var`的方式访问，也可以更方便地以`this.var`的方式访问。但是以`_`或`$`开头的属性*不会*被Vue实例代理，只能用前一种方式访问。
+
+#### props
+我们使用html标签时，可能会为它们添加一些属性，比如`<a href="www.pku.edu.cn">PKU</a>`。如果想在自定义的组件上实现类似这里的`href`这种传入的参数，就需要`props`来定义。
+
+`props`可以是一个`List`，也可以是一个`Object`。`Object`会提供更多详细的配置：
+* type: 可以是下列原生构造函数中的一种：String、Number、Boolean、Array、Object、Date、Function、Symbol、任何自定义构造函数、或上述内容组成的数组。
+* default: 为该`prop`指定一个默认值。
+* required: Boolean，是否是必需的。
+* validator: Function，返回一个Boolean，用于验证传入的数据的有效性。
+
+#### computed
+计算属性。可以基于其他变量来计算出这个变量。
+
+比如：
+```vue
+computed: {
+  aDouble: vm => vm.a * 2,
+  aTriple: function () {
+    return this.a * 3
+  }
+}
+```
+
+计算属性的结果会被缓存，除非依赖的响应式属性变化才会重新计算。
+
+#### methods
+其他的函数都可以写在这里，比如事件的handler、被调用的函数等等。
+
+需要注意的是，这里写的函数不能像上面那样声明成箭头函数了。因为那样的话会导致`this`并没有绑定到Vue实例上，从而无法正确访问其他的函数或者`data`。
+
+#### watch
+当被监视的变量改变时会被调用。和`props`类似，你可以直接写一个函数作为handler，也可以写一个`Object`，定义如下：
+* handler: Function(val, oldVal)。发生变化时被调用的函数。
+* deep: 为true时，当被监视对象是个`Object`时，无论多深的嵌套发生了变化，都会触发handler。默认为false。
+* immediate: 为true时，handler在侦听开始之后被立即调用。默认为false。
+
+与`methods`相同，这里不能使用箭头函数。
+
+### 生命周期钩子
+下面定义的函数将会在Vue组件运行到相应的生命周期时触发。与`methods`相同，这里不能使用箭头函数。
+目前我们只列出一些被用到的周期。
+
+#### created
+在实例创建完成后被立即调用。在这一步，实例已完成以下的配置：数据观测 (data observer)，属性和方法的运算，`watch/event`事件回调。
+
+然而，挂载阶段还没开始，也就是说，绝大多数数据都能够被访问到了，但是你还无法操作DOM和其他子组件，无法访问`$refs`。
+
+> `ref`被用来给元素或子组件注册引用信息。引用信息将会注册在父组件的`$refs`对象上。如果在普通的`DOM`元素上使用，引用指向的就是`DOM`元素；如果用在子组件上，引用就指向组件实例。这是我们操作`DOM`元素的一个重要手段。
+
+#### mounted
+挂载阶段已经完成，但是`mounted`不会承诺所有的子组件也都一起被挂载。如果你希望等到整个视图都渲染完毕，可以用`vm.$nextTick`替换掉`mounted`：
+
+```vue
+mounted: function () {
+  this.$nextTick(function () {
+    // Code that will run only after the
+    // entire view has been rendered
+  })
+}
+```
+
+#### beforeDestroy
+实例销毁之前调用。在这一步，实例仍然完全可用。
+
+## <style>标签
+`<style>`标签中是这个组件的css代码。我们留到以后再讲。
+
+## 我们以后会讲的内容
+* 第三方组件的安装与配置
+* element-ui、axios
+* css、动态class与style
+* 响应式属性
+* 组件的基本知识、生命周期、单文件组件、组件注册与复用
+* 父子组件之间的通信
+* 全局状态管理
+
+## 前后端协同
+### 跨域问题
+接下来我们需要处理的是跨域问题。
+
+跨域指的就是"跨域资源共享（Cross-Origin Resource Sharing, CORS）"，当一个资源从与该资源本身所在的服务器的不同域或者不同端口请求一个资源时，就会发起一个跨域HTTP请求。
+
+当<域名, 端口, 协议>三者完全相同才会被认为是"同源"请求，否则浏览器会拒绝请求，防止用户信息被窃取。
+
+跨域问题是需要在后端服务器层面进行解决的，即让后端服务器认可你这个前端页面。在django rest framework下很容易解决这个问题，我们采用`django-cors-headers`这个插件来进行配置。
+
+在安装了`django-cors-headers`后，在`settings.py`中进行下列修改：
+
+* 在`INSTALLED_APPS`中添加`corsheaders`
+* 在`MIDDLEWARE`的最上层添加`corsheaders.middleware.CorsMiddleware`
+* 添加配置`CORS_ORIGIN_WHITELIST`，加入你前端地址和端口
+* 添加配置`CORS_ALLOW_CREDENTIALS`，设置为`True`，以便我们日后实现登录等功能。
+
+以上改动可以在[dcac7b7cb8a3401abfc44dfc3a3e29d93ceed412](https://github.com/FireBrother/DCServerTutorial/commit/dcac7b7cb8a3401abfc44dfc3a3e29d93ceed412)看到。
+
+### 为Vue添加http请求的能力
+我个人比较习惯用`axios`这个第三方库。`axios`是一个基于`promise`的异步通信库，我们用它来实现向后端服务器的请求。
+
+在我们的Vue项目的根目录执行
+
+```bash
+npm install --save axios
+```
+
+然后在`main.js`中全局引入这个库，并挂载到Vue实例原型上，就可以在任意地方使用它了。我们之后章节会详细说明如何进行个性化配置，使其更易于使用。
 
 ## Build Setup
 
@@ -246,4 +366,5 @@ For a detailed explanation on how things work, check out the [guide](http://vuej
 
 ## Reference
 > * https://cn.vuejs.org/v2/guide/
+> * https://cn.vuejs.org/v2/api/
 > * https://www.cnblogs.com/goloving/p/8693189.html
